@@ -1,0 +1,28 @@
+[project]
+name = "realtrans"
+version = "0.1.0"
+description = "Real-time speech translation system with ASR, translation, and TTS"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "faster-whisper>=1.2.0",
+    "pyaudio>=0.2.14",
+    "requests>=2.32.0",
+    "webrtcvad>=2.0.10",
+    "numpy>=2.0.0",
+    "scipy>=1.5.0",
+    "torch>=2.5.0",
+    "transformers>=4.50.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.2",
+]
+
+[tool.uv.sources]
+pocket-tts = { path = "3parts/pocket-tts", editable = true }
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
