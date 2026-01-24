@@ -1,0 +1,76 @@
+INFO:     Started server process [249303]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://localhost:9099 (Press CTRL+C to quit)
+INFO:     127.0.0.1:46664 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46664 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60788 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51780 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56916 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43540 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41034 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43792 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54834 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54848 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54244 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53118 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53122 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39748 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39758 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59680 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59682 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58258 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47606 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37602 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51732 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32806 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36752 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35128 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46262 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46268 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48430 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48446 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47648 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43382 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43392 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42566 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42576 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34416 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45218 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33294 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33296 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33520 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55290 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58618 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49824 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38160 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50302 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50910 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42506 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48758 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50080 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55578 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58818 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36822 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44336 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56272 - "POST /tts HTTP/1.1" 200 OK
+INFO:     Started server process [5880]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://localhost:9099 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60308 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38726 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39968 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43286 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52028 - "POST /tts HTTP/1.1" 200 OK
+INFO:     Started server process [11614]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://localhost:9099 (Press CTRL+C to quit)
+INFO:     127.0.0.1:35318 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43866 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46280 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39698 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39712 - "POST /tts HTTP/1.1" 200 OK
