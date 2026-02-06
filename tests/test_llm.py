@@ -6,11 +6,12 @@ client = OpenAI(
 
 def test_chat_completions():
     response = client.chat.completions.create(
-        model="Qwen3-0.6B/",
+        model="Qwen3-0.6B",
         messages=[
-            {"role": "user", "content": "Hello!"},
+            {"role": "user", "content": "你好，你是谁？"},
         ],
         max_tokens=512
     )
-    assert response.choices[0].message.content is not None  
+    assert response.choices[0].message.content is not None
 
+test_chat_completions()

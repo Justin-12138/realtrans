@@ -1,0 +1,6 @@
+faster-whisper
+flask
+requests
+pyaudio
+webrtcvad
+numpy

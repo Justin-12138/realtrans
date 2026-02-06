@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Chat Partner</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗣️ English Chat Partner</h1>
+            <p class="subtitle">说中文，练习英语对话</p>
+        </header>
+
+        <main>
+            <!-- Status -->
+            <div class="status" id="status">
+                <span class="status-dot"></span>
+                <span class="status-text">准备就绪</span>
+            </div>
+
+            <!-- Waveform Visualization -->
+            <div class="waveform-container">
+                <canvas id="waveformCanvas"></canvas>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="chat-container" id="chatContainer">
+                <div class="welcome-message">
+                    <p>👋 你好！我是你的英语对话伙伴。</p>
+                    <p>点击下方按钮开始，我会自动检测你的语音。</p>
+                </div>
+            </div>
+
+            <!-- Toggle Button -->
+            <div class="controls">
+                <button class="toggle-btn" id="toggleBtn">
+                    <span class="icon"></span>
+                    <span class="text">开始监听</span>
+                </button>
+            </div>
+
+            <!-- Recording Indicator -->
+            <div class="recording-indicator" id="recordingIndicator">
+                <span class="pulse"></span>
+                <span>正在录音...</span>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by Whisper + Qwen + Kyutai TTS</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

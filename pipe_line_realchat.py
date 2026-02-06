@@ -23,7 +23,9 @@ import requests
 import webrtcvad
 import collections
 import time
+import json
 import numpy as np
+import threading
 from enum import Enum
 from faster_whisper import WhisperModel
 from typing import Optional
@@ -58,7 +60,7 @@ TIMEOUT_LLM = 8
 TIMEOUT_TTS = 15
 
 # LLM 配置
-LLM_MODEL = "Qwen3-0.6B/"
+LLM_MODEL = "Qwen3-0.6B"
 SYSTEM_PROMPT = (
     "You are a friendly English conversation partner helper. "
     "The user is learning English and will speak in Chinese. "
@@ -156,16 +158,36 @@ class EnglishChatPartner:
         if self.state != new_state:
             self.state = new_state
 
-    def init_whisper(self):
-        """加载 Whisper 模型"""
-        self.log("正在加载 Whisper 模型 (base)...")
+    def _bytes_to_wav_bytes(self, audio_data: bytes) -> bytes:
+        """Convert raw audio bytes to WAV format in memory"""
+        wav_buffer = io.BytesIO()
+        with wave.open(wav_buffer, 'wb') as wf:
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(2)
+            wf.setframerate(SAMPLE_RATE)
+            wf.writeframes(audio_data)
+        return wav_buffer.getvalue()
+
+    def _load_whisper_in_background(self):
+        """后台加载 Whisper 模型"""
         self.whisper_model = WhisperModel(
             "base",
             device="cpu",
             compute_type="int8",
             num_workers=2
         )
-        self.log("✓ 模型加载完成", "  ")
+
+    def init_whisper(self, wait=True):
+        """加载 Whisper 模型"""
+        if wait:
+            self.log("正在加载 Whisper 模型 (base)...")
+            self._load_whisper_in_background()
+            self.log("✓ 模型加载完成", "  ")
+        else:
+            # 后台加载，不等待
+            thread = threading.Thread(target=self._load_whisper_in_background, daemon=True)
+            thread.start()
+            return thread
 
     def get_audio_stats(self, audio_data: bytes) -> AudioStats:
         """计算音频统计信息"""
@@ -262,24 +284,14 @@ class EnglishChatPartner:
 
     def asr_transcribe(self, audio_data: bytes) -> Optional[str]:
         """ASR: 音频 → 文本"""
-        wav_buffer = io.BytesIO()
-        with wave.open(wav_buffer, 'wb') as wf:
-            wf.setnchannels(CHANNELS)
-            wf.setsampwidth(2)
-            wf.setframerate(SAMPLE_RATE)
-            wf.writeframes(audio_data)
-
-        temp_file = "/tmp/realchat_audio.wav"
-        with open(temp_file, 'wb') as f:
-            f.write(wav_buffer.getvalue())
+        wav_bytes = self._bytes_to_wav_bytes(audio_data)
+        wav_io = io.BytesIO(wav_bytes)
 
         try:
             segments, info = self.whisper_model.transcribe(
-                temp_file,
+                wav_io,
                 beam_size=5,
-                language="zh",
-                vad_filter=True,
-                vad_parameters=dict(min_silence_duration_ms=300)
+                language="zh"
             )
             text = "".join(seg.text for seg in segments).strip()
             return text if text else None
@@ -322,6 +334,62 @@ class EnglishChatPartner:
                     self.log(f"❌ LLM 失败: {e}", "  ")
         return None
 
+    def chat_with_llm_stream(self, text: str, retries: int = MAX_RETRIES) -> Optional[str]:
+        """LLM 对话 (流式，可提前开始TTS)"""
+        for attempt in range(retries):
+            try:
+                response = requests.post(
+                    LLM_API_URL,
+                    json={
+                        "model": LLM_MODEL,
+                        "messages": [
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": text}
+                        ],
+                        "max_tokens": 256,
+                        "stream": True
+                    },
+                    headers={"Content-Type": "application/json"},
+                    timeout=TIMEOUT_LLM,
+                    stream=True
+                )
+                response.raise_for_status()
+
+                full_text = ""
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    line = line.decode('utf-8')
+                    if line.startswith('data: '):
+                        data = line[6:]
+                        if data == '[DONE]':
+                            break
+                        try:
+                            chunk = json.loads(data)
+                            if 'choices' in chunk and chunk['choices']:
+                                delta = chunk['choices'][0].get('delta', {})
+                                content = delta.get('content', '')
+                                if content:
+                                    full_text += content
+                        except:
+                            pass
+
+                return full_text.strip() if full_text else None
+
+            except requests.Timeout:
+                if attempt < retries - 1:
+                    self.log(f"⚠️  LLM 超时，重试 {attempt + 1}/{retries}...", "  ")
+                    time.sleep(0.5)
+                else:
+                    self.log(f"❌ LLM 失败: 超时", "  ")
+            except Exception as e:
+                if attempt < retries - 1:
+                    self.log(f"⚠️  LLM 错误，重试 {attempt + 1}/{retries}...", "  ")
+                    time.sleep(0.5)
+                else:
+                    self.log(f"❌ LLM 失败: {e}", "  ")
+        return None
+
     def process_audio(self, audio_data: bytes) -> Optional[str]:
         """处理音频：ASR + LLM"""
         self.set_state(State.PROCESSING)
@@ -334,9 +402,9 @@ class EnglishChatPartner:
             return None
         self.log(f"   用户: {user_text}", "  ")
 
-        # LLM
+        # LLM (使用流式，降低首字延迟)
         self.log("🤖 思考中...", "  ")
-        response = self.chat_with_llm(user_text)
+        response = self.chat_with_llm_stream(user_text)
         if not response:
             return None
         self.log(f"   助手: {response}", "  ")
@@ -344,7 +412,7 @@ class EnglishChatPartner:
         return response
 
     def play_tts(self, text: str, stream):
-        """TTS 并播放"""
+        """TTS 并播放 (内存缓冲，无磁盘IO)"""
         self.set_state(State.PLAYING)
         self.log("🔊 生成语音...", "  ")
 
@@ -354,33 +422,33 @@ class EnglishChatPartner:
             response = requests.post(
                 TTS_API_URL,
                 data={"text": text},
-                stream=True,
                 timeout=TIMEOUT_TTS
             )
             response.raise_for_status()
 
-            temp_file = "/tmp/tts_output.wav"
-            with open(temp_file, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+            # 直接在内存中处理 WAV
+            wav_io = io.BytesIO(response.content)
 
-            wf = wave.open(temp_file, 'rb')
-            play_stream = self.audio.open(
-                format=self.audio.get_format_from_width(wf.getsampwidth()),
-                channels=wf.getnchannels(),
-                rate=wf.getframerate(),
-                output=True
-            )
+            with wave.open(wav_io, 'rb') as wf:
+                play_stream = self.audio.open(
+                    format=self.audio.get_format_from_width(wf.getsampwidth()),
+                    channels=wf.getnchannels(),
+                    rate=wf.getframerate(),
+                    output=True
+                )
 
             self.log("🔊 播放中...", "  ")
-            data = wf.readframes(1024)
-            while data and self.is_running:
+
+            # 从内存流式播放
+            wav_io.seek(44)  # 跳过 WAV header
+            while self.is_running:
+                data = wav_io.read(1024)
+                if not data:
+                    break
                 play_stream.write(data)
-                data = wf.readframes(1024)
 
             play_stream.stop_stream()
             play_stream.close()
-            wf.close()
 
             self.log("✓ 播放完成", "  ")
 
@@ -426,10 +494,12 @@ class EnglishChatPartner:
         self.is_running = True
 
         print(f"\n{'='*60}")
-        print("🗣️  实时英语对话助手 v1.0")
+        print("🗣️  实时英语对话助手 v1.0 (优化版)")
         print(f"{'='*60}\n")
 
-        self.init_whisper()
+        # 并行加载: 启动模型加载线程
+        print("📦 正在初始化...")
+        model_thread = self.init_whisper(wait=False)
 
         try:
             stream = self.audio.open(
@@ -443,7 +513,14 @@ class EnglishChatPartner:
             self.log(f"❌ 无法打开麦克风: {e}")
             return
 
+        # 校准期间模型在后台加载
         self.vad.calibrate(stream)
+
+        # 等待模型加载完成
+        if model_thread:
+            self.log("⏳ 等待模型加载...", "  ")
+            model_thread.join()
+            self.log("✓ 模型就绪", "  ")
 
         print(f"\n{'='*60}")
         print("📋 系统就绪")

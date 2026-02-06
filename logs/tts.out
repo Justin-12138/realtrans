@@ -74,3 +74,43 @@ INFO:     127.0.0.1:43866 - "POST /tts HTTP/1.1" 200 OK
 INFO:     127.0.0.1:46280 - "POST /tts HTTP/1.1" 200 OK
 INFO:     127.0.0.1:39698 - "POST /tts HTTP/1.1" 200 OK
 INFO:     127.0.0.1:39712 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37502 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37502 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39438 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54250 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41748 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48822 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41254 - "POST /tts HTTP/1.1" 200 OK
+WARNING:pocket_tts.models.tts_model:Maximum generation length reached without EOS, this very often indicates an error.
+INFO:     127.0.0.1:50942 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43194 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55188 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42418 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45312 - "POST /tts HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [11614]
+INFO:     Started server process [9344]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://localhost:9099 (Press CTRL+C to quit)
+INFO:     127.0.0.1:35356 - "POST /tts HTTP/1.1" 200 OK
+INFO:     Started server process [8490]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://localhost:9099 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56808 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45880 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43458 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57806 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39480 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54740 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33878 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45750 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40738 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35480 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32892 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53780 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50950 - "POST /tts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37060 - "POST /tts HTTP/1.1" 200 OK

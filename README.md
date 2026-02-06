@@ -6,7 +6,9 @@ A real-time speech translation system that transcribes Chinese speech, translate
 
 - **Adaptive VAD (Voice Activity Detection)**: Dynamically adjusts volume thresholds for different environments
 - **Intelligent Silence Detection**: Based on energy decay curves for accurate speech segmentation
-- **In-memory Audio Processing**: Minimizes file I/O for better performance
+- **Zero-File-I/O Pipeline**: All audio processing happens in memory for maximum performance
+- **Parallel Model Loading**: Whisper model loads during VAD calibration for faster startup
+- **LLM Streaming**: Reduced perceived latency with streaming responses
 - **Automatic Retry**: Handles network errors gracefully
 - **Playback Isolation**: Disables microphone during TTS playback to prevent feedback
 - **Progress Display**: Real-time feedback during recording and processing
@@ -18,6 +20,11 @@ Microphone -> ASR (Whisper) -> Translation API -> TTS -> Speaker
     |            |                 |                |
     v            v                 v                v
   Audio      Chinese Text      English Text      Audio
+
+Optimizations:
+├── Zero File I/O: All processing in-memory
+├── Parallel Loading: Model loads during VAD calibration
+└── Streaming: LLM responses stream in real-time
 ```
 
 ## Requirements
@@ -72,10 +79,10 @@ pocket-tts serve --port 9099
 
 ## Usage
 
-### Main Application
+### Main Application (Optimized)
 
 ```bash
-python main.py
+python pipe_line_realchat.py
 ```
 
 **Workflow:**
@@ -103,7 +110,7 @@ python tests/pipeline_all.py
 
 ## Configuration
 
-Edit `main.py` to customize:
+Edit `pipe_line_realchat.py` to customize:
 
 ```python
 # Audio parameters
@@ -131,11 +138,15 @@ TIMEOUT_TTS = 15
 
 ```
 realtrans/
-├── main.py                  # Main application
+├── main.py                  # Main application (original)
+├── pipe_line_realchat.py    # Optimized real-time chat pipeline
+├── web_server.py            # Web interface (optional)
 ├── pyproject.toml           # Project config
 ├── tests/
-│   ├── test_aasr.py         # ASR test
-│   ├── test_translate.py    # Translation test
+│   ├── test_asr.py          # ASR test
+│   ├── test_llm.py          # LLM/Translation test
+│   ├── test_aasr.py         # ASR test (legacy)
+│   ├── test_translate.py    # Translation test (legacy)
 │   ├── test_pockettts.py    # TTS test
 │   ├── pipeline_all.py      # Full pipeline test
 │   └── pipeline_realtime.py # Duplicate of main.py

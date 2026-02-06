@@ -6,7 +6,9 @@
 
 - **自适应 VAD (语音活动检测)**: 根据不同环境动态调整音量阈值
 - **智能静音检测**: 基于能量衰减曲线，实现准确的语音分割
-- **内存音频处理**: 减少文件 I/O，提升性能
+- **零文件 I/O 管道**: 所有音频处理在内存中完成，性能最优
+- **并行模型加载**: Whisper 模型在 VAD 校准期间加载，启动更快
+- **LLM 流式响应**: 降低感知延迟，响应更及时
 - **自动重试**: 优雅处理网络错误
 - **播放隔离**: TTS 播放期间禁用麦克风，防止回声
 - **进度显示**: 录音和处理过程中实时反馈
@@ -18,6 +20,11 @@
    |          |               |            |
    v          v               v            v
  音频      中文文本        英文文本      音频
+
+优化项:
+├── 零文件 I/O: 所有处理在内存中完成
+├── 并行加载: 模型在 VAD 校准期间加载
+└── 流式响应: LLM 实时流式输出
 ```
 
 ## 环境要求
@@ -72,10 +79,10 @@ pocket-tts serve --port 9099
 
 ## 使用方法
 
-### 主程序
+### 主程序 (优化版)
 
 ```bash
-python main.py
+python pipe_line_realchat.py
 ```
 
 **工作流程：**
@@ -103,7 +110,7 @@ python tests/pipeline_all.py
 
 ## 配置
 
-编辑 `main.py` 进行自定义：
+编辑 `pipe_line_realchat.py` 进行自定义：
 
 ```python
 # 音频参数
@@ -131,11 +138,15 @@ TIMEOUT_TTS = 15
 
 ```
 realtrans/
-├── main.py                  # 主程序
+├── main.py                  # 主程序 (原版)
+├── pipe_line_realchat.py    # 优化的实时对话管道
+├── web_server.py            # Web 界面 (可选)
 ├── pyproject.toml           # 项目配置
 ├── tests/
-│   ├── test_aasr.py         # ASR 测试
-│   ├── test_translate.py    # 翻译测试
+│   ├── test_asr.py          # ASR 测试
+│   ├── test_llm.py          # LLM/翻译测试
+│   ├── test_aasr.py         # ASR 测试 (旧版)
+│   ├── test_translate.py    # 翻译测试 (旧版)
 │   ├── test_pockettts.py    # TTS 测试
 │   ├── pipeline_all.py      # 完整流程测试
 │   └── pipeline_realtime.py # main.py 副本
