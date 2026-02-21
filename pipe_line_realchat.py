@@ -129,7 +129,7 @@ class AdaptiveVAD:
 
         try:
             vad_result = self.vad.is_speech(chunk, SAMPLE_RATE)
-        except:
+        except Exception:
             vad_result = False
 
         volume_ok = rms > self.volume_threshold
@@ -193,8 +193,8 @@ class EnglishChatPartner:
         """计算音频统计信息"""
         audio_np = np.frombuffer(audio_data, dtype=np.int16)
         rms = np.sqrt(np.mean(audio_np.astype(float) ** 2))
-        max_amp = np.max(np.abs(audio_np))
-        duration = len(audio_data) / SAMPLE_RATE
+        max_amp = int(np.max(np.abs(audio_np)))
+        duration = len(audio_data) / (SAMPLE_RATE * 2)  # 16-bit = 2 bytes per sample
         return AudioStats(rms=rms, max_amplitude=max_amp, duration=duration)
 
     def record_speech(self, stream) -> Optional[bytes]:
@@ -254,10 +254,9 @@ class EnglishChatPartner:
                 silence_ms = silence_frames * CHUNK_DURATION_MS
 
                 if silence_ms >= SPEECH_END_SILENCE_MS:
-                    if rms < max_rms * 0.3:
-                        print()
-                        self.log(f"✓ 录音结束 (时长: {duration:.1f}s)", "  ")
-                        break
+                    print()
+                    self.log(f"✓ 录音结束 (时长: {duration:.1f}s)", "  ")
+                    break
 
             # 超时保护
             if duration >= SPEECH_MAX_DURATION:
@@ -334,8 +333,13 @@ class EnglishChatPartner:
                     self.log(f"❌ LLM 失败: {e}", "  ")
         return None
 
-    def chat_with_llm_stream(self, text: str, retries: int = MAX_RETRIES) -> Optional[str]:
-        """LLM 对话 (流式，可提前开始TTS)"""
+    def _iter_llm_sentences(self, text: str, retries: int = MAX_RETRIES):
+        """
+        Stream LLM response and yield complete sentences as they arrive.
+        Yields (sentence, is_last) tuples.
+        """
+        sentence_endings = frozenset('.!?;')
+
         for attempt in range(retries):
             try:
                 response = requests.post(
@@ -355,7 +359,7 @@ class EnglishChatPartner:
                 )
                 response.raise_for_status()
 
-                full_text = ""
+                buffer = ""
                 for line in response.iter_lines():
                     if not line:
                         continue
@@ -370,11 +374,18 @@ class EnglishChatPartner:
                                 delta = chunk['choices'][0].get('delta', {})
                                 content = delta.get('content', '')
                                 if content:
-                                    full_text += content
-                        except:
+                                    buffer += content
+                                    # Check for sentence boundary
+                                    if buffer.rstrip() and buffer.rstrip()[-1] in sentence_endings:
+                                        yield buffer.strip(), False
+                                        buffer = ""
+                        except (json.JSONDecodeError, KeyError, IndexError):
                             pass
 
-                return full_text.strip() if full_text else None
+                # Yield any remaining text
+                if buffer.strip():
+                    yield buffer.strip(), True
+                return
 
             except requests.Timeout:
                 if attempt < retries - 1:
@@ -388,36 +399,55 @@ class EnglishChatPartner:
                     time.sleep(0.5)
                 else:
                     self.log(f"❌ LLM 失败: {e}", "  ")
-        return None
 
-    def process_audio(self, audio_data: bytes) -> Optional[str]:
-        """处理音频：ASR + LLM"""
+    def chat_with_llm_stream(self, text: str, retries: int = MAX_RETRIES) -> Optional[str]:
+        """LLM streaming chat, collects full response (for non-pipelined use)."""
+        sentences = []
+        for sentence, _ in self._iter_llm_sentences(text, retries):
+            sentences.append(sentence)
+        full = " ".join(sentences).strip()
+        return full if full else None
+
+    def _asr(self, audio_data: bytes) -> Optional[str]:
+        """ASR only -- returns recognized text."""
         self.set_state(State.PROCESSING)
 
-        # ASR
         self.log("📝 识别中...", "  ")
         user_text = self.asr_transcribe(audio_data)
         if not user_text:
             self.log("⚠️  未识别到文本", "  ")
             return None
         self.log(f"   用户: {user_text}", "  ")
+        return user_text
 
-        # LLM (使用流式，降低首字延迟)
-        self.log("🤖 思考中...", "  ")
-        response = self.chat_with_llm_stream(user_text)
-        if not response:
-            return None
-        self.log(f"   助手: {response}", "  ")
+    def _drain_mic_buffer(self, stream):
+        """Drain stale audio frames from the mic buffer after playback."""
+        try:
+            avail = stream.get_read_available()
+            if avail > 0:
+                stream.read(avail, exception_on_overflow=False)
+        except Exception:
+            pass
 
-        return response
+    def _play_wav_bytes(self, wav_bytes: bytes):
+        """Play WAV audio from bytes through speakers."""
+        wav_io = io.BytesIO(wav_bytes)
+        with wave.open(wav_io, 'rb') as wf:
+            play_stream = self.audio.open(
+                format=self.audio.get_format_from_width(wf.getsampwidth()),
+                channels=wf.getnchannels(),
+                rate=wf.getframerate(),
+                output=True
+            )
+            data = wf.readframes(1024)
+            while data and self.is_running:
+                play_stream.write(data)
+                data = wf.readframes(1024)
+        play_stream.stop_stream()
+        play_stream.close()
 
-    def play_tts(self, text: str, stream):
-        """TTS 并播放 (内存缓冲，无磁盘IO)"""
-        self.set_state(State.PLAYING)
-        self.log("🔊 生成语音...", "  ")
-
-        stream.stop_stream()
-
+    def _tts_request(self, text: str) -> Optional[bytes]:
+        """Call TTS API and return WAV bytes."""
         try:
             response = requests.post(
                 TTS_API_URL,
@@ -425,64 +455,70 @@ class EnglishChatPartner:
                 timeout=TIMEOUT_TTS
             )
             response.raise_for_status()
-
-            # 直接在内存中处理 WAV
-            wav_io = io.BytesIO(response.content)
-
-            with wave.open(wav_io, 'rb') as wf:
-                play_stream = self.audio.open(
-                    format=self.audio.get_format_from_width(wf.getsampwidth()),
-                    channels=wf.getnchannels(),
-                    rate=wf.getframerate(),
-                    output=True
-                )
-
-            self.log("🔊 播放中...", "  ")
-
-            # 从内存流式播放
-            wav_io.seek(44)  # 跳过 WAV header
-            while self.is_running:
-                data = wav_io.read(1024)
-                if not data:
-                    break
-                play_stream.write(data)
-
-            play_stream.stop_stream()
-            play_stream.close()
-
-            self.log("✓ 播放完成", "  ")
-
+            return response.content
         except Exception as e:
-            self.log(f"❌ TTS/播放错误: {e}", "  ")
-        finally:
-            time.sleep(0.5)
-            stream.start_stream()
+            self.log(f"❌ TTS 错误: {e}", "  ")
+            return None
 
     def run_cycle(self, stream) -> bool:
-        """执行一次完整循环"""
+        """
+        One full conversation cycle with sentence-level pipelining.
+
+        Instead of waiting for the full LLM response before calling TTS,
+        we stream the LLM output sentence by sentence. As soon as the
+        first sentence arrives, we send it to TTS and start playing.
+        This cuts perceived latency significantly -- the user hears
+        the first sentence while the LLM may still be generating.
+        """
         start_time = time.time()
 
-        # 1. 录音
+        # 1. Record
         audio_data = self.record_speech(stream)
         if audio_data is None:
             return self.is_running
 
-        # 2. 处理
-        response_text = self.process_audio(audio_data)
-        if response_text is None:
+        # 2. ASR
+        user_text = self._asr(audio_data)
+        if user_text is None:
             self.stats['failed'] += 1
             return self.is_running
 
-        # 3. 播放
-        self.play_tts(response_text, stream)
+        # 3. LLM → TTS → Play, sentence by sentence
+        self.log("🤖 思考中...", "  ")
+        stream.stop_stream()
 
-        # 统计
+        full_response = []
+
+        try:
+            for sentence, _is_last in self._iter_llm_sentences(user_text):
+                full_response.append(sentence)
+                self.log(f"   助手: {sentence}", "  ")
+
+                self.log("🔊 播放中...", "  ")
+                self.set_state(State.PLAYING)
+                wav_bytes = self._tts_request(sentence)
+                if wav_bytes:
+                    self._play_wav_bytes(wav_bytes)
+
+            if not full_response:
+                self.log("⚠️  LLM 无响应", "  ")
+                self.stats['failed'] += 1
+                return self.is_running
+
+        except Exception as e:
+            self.log(f"❌ Pipeline 错误: {e}", "  ")
+            self.stats['failed'] += 1
+            return self.is_running
+        finally:
+            time.sleep(0.3)
+            stream.start_stream()
+            self._drain_mic_buffer(stream)
+
+        # Stats
         elapsed = time.time() - start_time
         self.stats['processed'] += 1
-        self.stats['avg_time'] = (
-            (self.stats['avg_time'] * (self.stats['processed'] - 1) + elapsed)
-            / self.stats['processed']
-        )
+        n = self.stats['processed']
+        self.stats['avg_time'] = (self.stats['avg_time'] * (n - 1) + elapsed) / n
 
         self.log(f"✓ 本轮完成 (耗时: {elapsed:.1f}s)", "  ")
         print()
